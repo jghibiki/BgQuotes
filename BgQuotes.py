@@ -3,24 +3,55 @@ import click, random, math, json
 from textwrap import TextWrapper
 from PIL import Image, ImageFont, ImageDraw
 
+def hsv_to_rgb(h, s, v):
+    h_i = int(h*6)
+    f = h*6 - h_i
+    p = v * (1 - s)
+    q = v * (1 - f*s)
+    t = v * (1 - (1 - f) * s)
+    if h_i is 0:
+        r = v
+        g = t
+        b = p
+    elif h_i is 1:
+        r = q
+        g = v
+        b = p
+    elif h_i is 2:
+        r = q
+        g = v
+        b = p
+    elif h_i is 3:
+        r = p
+        g = v
+        b = t
+    elif h_i is 4:
+        r = t
+        g = p
+        b = v
+    elif h_i is 5:
+        r = v
+        g = p
+        b = q
+    return (int(r*256), int(g*256), int(b*256))
 
-def calc_fg_color(bg_color):
-    result = []
-    for c,idx in enumerate(bg_color):
-        c = c / 255.0
-        if c <= 0.03928:
-            result.append(c/12.92)
-        else:
-            result.append(((c+0.055)/1.055) ^ 2.4)
-
-    L = 0.2126 * result[0] + 0.7152 * result[1] + 0.0722 * result[2]
-
-    #if L > math.sqrt(1.05 * 0.05) - 0.05:
-    if L > math.sqrt(1.05 * 0.05):
-        return (0, 0, 0)
-    else:
-        return (255, 255, 255)
-
+#def calc_fg_color(bg_color):
+#    result = []
+#    for c,idx in enumerate(bg_color):
+#        c = c / 255.0
+#        if c <= 0.03928:
+#            result.append(c/12.92)
+#        else:
+#            result.append(((c+0.055)/1.055) ^ 2.4)
+#
+#    L = 0.2126 * result[0] + 0.7152 * result[1] + 0.0722 * result[2]
+#
+#    #if L > math.sqrt(1.05 * 0.05) - 0.05:
+#    if L > math.sqrt(1.05 * 0.05):
+#        return (0, 0, 0)
+#    else:
+#        return (255, 255, 255)
+#
 
 @click.command()
 @click.option('--font', default=None, help='(Optional) Path to the font you wish to use, overrides --font-list')
@@ -74,12 +105,31 @@ def main(font, font_list, quote, quote_list, output, height, width, font_size):
     print("Font: %s" % font)
     font = ImageFont.truetype(font, font_size)
 
-    bg_color = (
-            random.randint(0, 255),
-            random.randint(0, 255),
-            random.randint(0, 255))
+    bg_color = hsv_to_rgb(random.random(), 0.8, 0.3)
+    #bg_color = (
+    #        random.randint(0, 255),
+    #        random.randint(0, 255),
 
-    fg_color = calc_fg_color(bg_color)
+    #        255) #random.randint(0, 255))
+
+    #variance_value = random.randint(0, 255)
+    #variance_factor = 5 #random.randint(0, 5)
+    #variance_sign = random.choice([-1, 1])
+    #variance = variance_value * variance_factor * variance_sign
+
+    #bg_color = (
+    #    bg_color[0] + variance if bg_color[0] + variance > 0 else bg_color[0],
+    #    bg_color[1] + variance if bg_color[1] + variance > 0 else bg_color[1],
+    #    bg_color[2] + variance if bg_color[2] + variance > 0 else bg_color[2]
+    #)
+    #bg_color = (
+    #    bg_color[0] if bg_color[0] < 255 else bg_color[0] - 255,
+    #    bg_color[1] if bg_color[1] < 255 else bg_color[1] - 255,
+    #    bg_color[2] if bg_color[2] < 255 else bg_color[2] - 255
+    #)
+
+
+    fg_color = (255, 255, 255) #calc_fg_color(bg_color)
 
     x = math.ceil(
             random.randint(
@@ -111,10 +161,27 @@ def main(font, font_list, quote, quote_list, output, height, width, font_size):
 
     offset = 50
     margin = 50
+
+    line_height = []
+
     T = TextWrapper(replace_whitespace=False, drop_whitespace=False, width=(width/avg_w)-5)
     for line in T.wrap(quote):
-        draw.text((margin, offset), line, fg_color, font=font)
-        offset += font.getsize(line)[1]
+        line_height.append(font.getsize(line)[1])
+
+    line_height = max(line_height)
+
+    lines = quote.split("\n")
+    print("lines: %s" % lines)
+    for line in lines:
+        print("line: %s" % line)
+        if line != "":
+            for subline in T.wrap(line):
+                print("subline: %s" % subline)
+                draw.text((margin, offset), subline, fg_color, font=font)
+                offset += line_height
+        else:
+            offset += math.ceil(line_height/2)
+
 
 
     img.save(output)
