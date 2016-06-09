@@ -62,7 +62,9 @@ def hsv_to_rgb(h, s, v):
 @click.option('-h', '--height', default=None, help='(Required) Height of output image.')
 @click.option('-w', '--width', default=None, help='(Required) Width of output image.')
 @click.option('-s', '--font-size', default=12, help='(Optional) Size of font. Defaults to 12.')
-def main(font, font_list, quote, quote_list, output, height, width, font_size):
+@click.option('-v', '--verbose', default=False, is_flag=True, help='(Optional) Toggles Verbosity.')
+@click.option('--font-test', default=False, is_flag=True, help='(Optional) Runs program in font test mode. The program with attempt to load all fonts in font list. Requires --font-list')
+def main(font, font_list, quote, quote_list, output, height, width, font_size, verbose, font_test):
     if( not font and not font_list ):
         click.echo("Either --font or -f / --font_list must be provided.")
         return
@@ -85,6 +87,7 @@ def main(font, font_list, quote, quote_list, output, height, width, font_size):
         click.echo("Must provide -w / --weight to specify output image width.")
         return
 
+
     width = int(width)
 
     if not quote:
@@ -94,6 +97,22 @@ def main(font, font_list, quote, quote_list, output, height, width, font_size):
                 quote_list.pop()
             quote = random.choice(quote_list)
 
+    if(verbose):
+        print("Font List: {0}".format(font_list))
+
+    if font_test:
+        with open(font_list, "r") as f:
+            font_list = json.load(f)
+            for font in font_list:
+                try:
+                    ImageFont.truetype(font, font_size)
+                except:
+                    print("Bad font: \"{0}\"".format(font))
+        print("Test Passed! Exiting...")
+        exit()
+
+
+
     if not font:
         with open(font_list, "r") as f:
             font_list = json.load(f)
@@ -101,8 +120,9 @@ def main(font, font_list, quote, quote_list, output, height, width, font_size):
                 font_list.pop()
             font = random.choice(font_list)
 
+    if(verbose):
+        print("Font: {0}".format(font))
 
-    print("Font: %s" % font)
     font = ImageFont.truetype(font, font_size)
 
     bg_color = hsv_to_rgb(random.random(), 0.8, 0.3)
